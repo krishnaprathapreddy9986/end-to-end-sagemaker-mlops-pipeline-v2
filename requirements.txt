@@ -1,0 +1,6 @@
+sagemaker<3
+boto3
+scikit-learn
+pandas
+mlflow
+pytest
