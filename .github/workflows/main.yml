@@ -1,8 +1,82 @@
-name: MLOps Pipeline
+name: SageMaker MLOps Lab
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      start_pipeline:
+        description: Start the SageMaker pipeline after deploy
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-south-1
+  PIPELINE_NAME: sagemaker-mlops-lab
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate lab
+        run: make validate
+
+      - name: Run smoke tests
+        run: make test
+
+  run-pipeline:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check required GitHub settings
+        env:
+          AWS_GITHUB_ACTIONS_ROLE_ARN: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          SAGEMAKER_ROLE_ARN: ${{ vars.SAGEMAKER_ROLE_ARN || secrets.SAGEMAKER_ROLE_ARN }}
+          MODEL_BUCKET: ${{ vars.MODEL_BUCKET || secrets.MODEL_BUCKET }}
+        run: |
+          test -n "$AWS_GITHUB_ACTIONS_ROLE_ARN" || (echo "Missing secret AWS_GITHUB_ACTIONS_ROLE_ARN" && exit 1)
+          test -n "$SAGEMAKER_ROLE_ARN" || (echo "Missing SAGEMAKER_ROLE_ARN in repository variable or secret" && exit 1)
+          test -n "$MODEL_BUCKET" || (echo "Missing MODEL_BUCKET in repository variable or secret" && exit 1)
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Export lab variables
+        run: |
+          echo "SAGEMAKER_ROLE_ARN=${{ vars.SAGEMAKER_ROLE_ARN || secrets.SAGEMAKER_ROLE_ARN }}" >> "$GITHUB_ENV"
+          echo "MODEL_BUCKET=${{ vars.MODEL_BUCKET || secrets.MODEL_BUCKET }}" >> "$GITHUB_ENV"
+          echo "MLFLOW_TRACKING_URI=${{ vars.MLFLOW_TRACKING_URI || secrets.MLFLOW_TRACKING_URI }}" >> "$GITHUB_ENV"
+
+      - name: Upsert SageMaker pipeline
+        run: python scripts/run_pipeline.py --region "$AWS_REGION" --pipeline-name "$PIPELINE_NAME"
+
+      - name: Start SageMaker pipeline
+        if: ${{ github.event_name == 'push' || inputs.start_pipeline }}
+        run: python scripts/run_pipeline.py --region "$AWS_REGION" --pipeline-name "$PIPELINE_NAME" --start
 
