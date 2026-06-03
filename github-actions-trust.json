@@ -3,7 +3,7 @@
   "Statement": [{
     "Effect": "Allow",
     "Principal": {
-      "Federated": "arn:aws:iam::559352513391:oidc-provider/token.actions.githubusercontent.com"
+      "Federated": "arn:aws:iam::548911562890:oidc-provider/token.actions.githubusercontent.com"
     },
     "Action": "sts:AssumeRoleWithWebIdentity",
     "Condition": {
@@ -11,7 +11,7 @@
         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
       },
       "StringLike": {
-        "token.actions.githubusercontent.com:sub": "repo:YOUR_GITHUB_USERNAME_OR_ORG/end-to-end-sagemaker-mlops-pipeline-v2:*"
+        "token.actions.githubusercontent.com:sub": "repo:krishnaprathapreddy9986/end-to-end-sagemaker-mlops-pipeline-v2:*"
       }
     }
   }]
