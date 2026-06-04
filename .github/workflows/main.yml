@@ -41,6 +41,7 @@ jobs:
   run-pipeline:
     needs: validate
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -55,8 +56,8 @@ jobs:
           MODEL_BUCKET: ${{ vars.MODEL_BUCKET || secrets.MODEL_BUCKET }}
         run: |
           test -n "$AWS_GITHUB_ACTIONS_ROLE_ARN" || (echo "Missing secret AWS_GITHUB_ACTIONS_ROLE_ARN" && exit 1)
-          test -n "$SAGEMAKER_ROLE_ARN" || (echo "Missing SAGEMAKER_ROLE_ARN in repository variable or secret" && exit 1)
-          test -n "$MODEL_BUCKET" || (echo "Missing MODEL_BUCKET in repository variable or secret" && exit 1)
+          test -n "$SAGEMAKER_ROLE_ARN" || (echo "Missing SAGEMAKER_ROLE_ARN" && exit 1)
+          test -n "$MODEL_BUCKET" || (echo "Missing MODEL_BUCKET" && exit 1)
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -73,10 +74,16 @@ jobs:
           echo "MODEL_BUCKET=${{ vars.MODEL_BUCKET || secrets.MODEL_BUCKET }}" >> "$GITHUB_ENV"
           echo "MLFLOW_TRACKING_URI=${{ vars.MLFLOW_TRACKING_URI || secrets.MLFLOW_TRACKING_URI }}" >> "$GITHUB_ENV"
 
+      # 🔥 STEP 1: ONLY UPSERT PIPELINE
       - name: Upsert SageMaker pipeline
-        run: python scripts/run_pipeline.py --region "$AWS_REGION" --pipeline-name "$PIPELINE_NAME"
+        run: |
+          echo "Creating/Updating SageMaker Pipeline..."
+          python scripts/run_pipeline.py --region "$AWS_REGION" --pipeline-name "$PIPELINE_NAME"
 
+      # 🔥 STEP 2: START PIPELINE (ONLY IF REQUIRED)
       - name: Start SageMaker pipeline
-        if: ${{ github.event_name == 'push' || inputs.start_pipeline }}
-        run: python scripts/run_pipeline.py --region "$AWS_REGION" --pipeline-name "$PIPELINE_NAME" --start
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.start_pipeline == true }}
+        run: |
+          echo "Starting SageMaker Pipeline Execution..."
+          python scripts/run_pipeline.py --region "$AWS_REGION" --pipeline-name "$PIPELINE_NAME" --start
 
