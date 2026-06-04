@@ -3,9 +3,7 @@ from pathlib import Path
 import boto3
 import sagemaker
 from sagemaker import image_uris
-from sagemaker.model import Model
 from sagemaker.sklearn.estimator import SKLearn
-from sagemaker.workflow.model_step import ModelStep
 from sagemaker.workflow.parameters import ParameterFloat, ParameterString
 from sagemaker.workflow.pipeline import Pipeline
 from sagemaker.workflow.steps import TrainingStep
@@ -23,12 +21,12 @@ def get_pipeline(
     pipeline_name: str = "sagemaker-mlops-lab",
 ):
 
-    # ✅ FIX: proper session (this makes pipeline visible in AWS)
+    # ✅ Correct session
     boto_session = boto3.Session(region_name=region)
     session = Session(boto_session=boto_session)
 
     # -------------------------
-    # Pipeline Parameters
+    # Parameters
     # -------------------------
     test_size = ParameterFloat(name="TestSize", default_value=0.2)
     training_instance = ParameterString(
@@ -36,7 +34,7 @@ def get_pipeline(
     )
 
     # -------------------------
-    # Training Image
+    # Training image
     # -------------------------
     sklearn_image = image_uris.retrieve(
         framework="sklearn",
@@ -46,7 +44,7 @@ def get_pipeline(
     )
 
     # -------------------------
-    # Training Environment
+    # Environment
     # -------------------------
     training_environment = {
         "MLFLOW_EXPERIMENT_NAME": "hyderabad-house-price-lab",
@@ -64,17 +62,17 @@ def get_pipeline(
         role=role_arn,
         image_uri=sklearn_image,
         instance_count=1,
-        instance_type="ml.m5.large",  # FIX: avoid pipeline variable issue in estimator
+        instance_type="ml.m5.large",
         sagemaker_session=session,
         output_path=f"s3://{model_bucket}/artifacts",
         hyperparameters={
-            "test-size": "0.2"   # FIX: must be string, not PipelineParameter
+            "test-size": "0.2"
         },
         environment=training_environment,
     )
 
     # -------------------------
-    # Training Step
+    # Training Step ONLY
     # -------------------------
     train_step = TrainingStep(
         name="TrainHyderabadHousePriceModel",
@@ -82,39 +80,12 @@ def get_pipeline(
     )
 
     # -------------------------
-    # Model
-    # -------------------------
-    model = Model(
-        image_uri=sklearn_image,
-        model_data=train_step.properties.ModelArtifacts.S3ModelArtifacts,
-        role=role_arn,
-        sagemaker_session=session,
-    )
-
-    # -------------------------
-    # Register Model Step
-    # -------------------------
-    register_args = model.register(
-        content_types=["application/json"],
-        response_types=["application/json"],
-        inference_instances=["ml.m5.large"],
-        transform_instances=["ml.m5.large"],
-        model_package_group_name=f"{pipeline_name}-models",
-        approval_status="PendingManualApproval",
-    )
-
-    register_step = ModelStep(
-        name="RegisterModelPackage",
-        step_args=register_args,
-    )
-
-    # -------------------------
-    # FINAL PIPELINE
+    # PIPELINE (NO MODEL REGISTRY)
     # -------------------------
     pipeline = Pipeline(
         name=pipeline_name,
         parameters=[test_size, training_instance],
-        steps=[train_step, register_step],
+        steps=[train_step],
         sagemaker_session=session,
     )
 
