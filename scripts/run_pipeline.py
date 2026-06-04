@@ -8,6 +8,20 @@ sys.path.insert(0, str(ROOT))
 from pipelines.pipeline import get_pipeline
 
 
+<<<<<<< HEAD
+=======
+def parse_args():
+    parser = argparse.ArgumentParser(description="Deploy or run the SageMaker lab pipeline.")
+    parser.add_argument("--region", default=os.getenv("AWS_REGION", "ap-south-1"))
+    parser.add_argument("--role-arn", default=os.getenv("SAGEMAKER_ROLE_ARN"))
+    parser.add_argument("--model-bucket", default=os.getenv("MODEL_BUCKET"))
+    parser.add_argument("--mlflow-tracking-uri", default=os.getenv("MLFLOW_TRACKING_URI", ""))
+    parser.add_argument("--pipeline-name", default=os.getenv("PIPELINE_NAME", "sagemaker-mlops-lab"))
+    parser.add_argument("--start", action="store_true", help="Start an execution after upsert.")
+    return parser.parse_args()
+
+
+>>>>>>> c32b77f62404591bdd5e89f094cd9a7263b02196
 def main():
     region = os.getenv("AWS_REGION", "ap-south-1")
     role_arn = os.getenv("SAGEMAKER_ROLE_ARN")
