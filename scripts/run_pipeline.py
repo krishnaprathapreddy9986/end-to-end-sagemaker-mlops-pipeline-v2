@@ -11,7 +11,7 @@ from pipelines.pipeline import get_pipeline
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Deploy or run the SageMaker lab pipeline.")
-    parser.add_argument("--region", default=os.getenv("AWS_REGION", "us-east-1"))
+    parser.add_argument("--region", default=os.getenv("AWS_REGION", "ap-south-1"))
     parser.add_argument("--role-arn", default=os.getenv("SAGEMAKER_ROLE_ARN"))
     parser.add_argument("--model-bucket", default=os.getenv("MODEL_BUCKET"))
     parser.add_argument("--mlflow-tracking-uri", default=os.getenv("MLFLOW_TRACKING_URI", ""))
