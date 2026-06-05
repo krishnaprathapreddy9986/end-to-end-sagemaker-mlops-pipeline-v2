@@ -1,5 +1,5 @@
 PYTHON ?= python
-AWS_REGION ?= us-east-1
+AWS_REGION ?= ap-south-1
 PIPELINE_NAME ?= sagemaker-mlops-lab
 
 .PHONY: install validate test run-pipeline
