@@ -680,3 +680,4 @@ Keep `DELETE_GITHUB_OIDC_PROVIDER=false` if the same AWS account uses GitHub Act
 7. S3 -> empty and delete model/frontend buckets.
 8. IAM -> `Roles` -> delete SageMaker, GitHub Actions, and Lambda lab roles.
 9. IAM -> `Identity providers` -> delete GitHub OIDC provider only if it is not used by other repos.
+retry oidc

@@ -1,0 +1,1 @@
+{"statusCode": 500, "headers": {"content-type": "application/json", "access-control-allow-origin": "*"}, "body": "{\"error\": \"An error occurred (404) when calling the HeadObject operation: Not Found\"}"}
