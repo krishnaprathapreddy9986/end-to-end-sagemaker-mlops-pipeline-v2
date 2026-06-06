@@ -8,13 +8,13 @@ on:
   workflow_dispatch:
     inputs:
       start_pipeline:
-        description: Start the SageMaker pipeline after deploy
-        type: boolean
-        default: true
+        description: Start SageMaker pipeline
+        required: false
+        default: "true"
 
 permissions:
   contents: read
-  id-token: write   # ✅ REQUIRED for OIDC (you already had this correct)
+  id-token: write
 
 env:
   AWS_REGION: ap-south-1
@@ -23,7 +23,6 @@ env:
 jobs:
   validate:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -51,49 +50,32 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 🔐 STEP 1: CHECK REQUIRED VARIABLES
-      - name: Check required GitHub settings
-        env:
-          AWS_GITHUB_ACTIONS_ROLE_ARN: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
-          SAGEMAKER_ROLE_ARN: ${{ vars.SAGEMAKER_ROLE_ARN || secrets.SAGEMAKER_ROLE_ARN }}
-          MODEL_BUCKET: ${{ vars.MODEL_BUCKET || secrets.MODEL_BUCKET }}
-        run: |
-          test -n "$AWS_GITHUB_ACTIONS_ROLE_ARN" || (echo "Missing AWS_GITHUB_ACTIONS_ROLE_ARN" && exit 1)
-          test -n "$SAGEMAKER_ROLE_ARN" || (echo "Missing SAGEMAKER_ROLE_ARN" && exit 1)
-          test -n "$MODEL_BUCKET" || (echo "Missing MODEL_BUCKET" && exit 1)
-
-      # 🔐 STEP 2: AWS OIDC LOGIN (FIXED + SAFE)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: github-actions-session
 
-      # 🧪 STEP 3: INSTALL DEPENDENCIES
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # 📦 STEP 4: EXPORT VARIABLES
-      - name: Export lab variables
+      - name: Export variables
         run: |
           echo "SAGEMAKER_ROLE_ARN=${{ vars.SAGEMAKER_ROLE_ARN || secrets.SAGEMAKER_ROLE_ARN }}" >> $GITHUB_ENV
           echo "MODEL_BUCKET=${{ vars.MODEL_BUCKET || secrets.MODEL_BUCKET }}" >> $GITHUB_ENV
           echo "MLFLOW_TRACKING_URI=${{ vars.MLFLOW_TRACKING_URI || secrets.MLFLOW_TRACKING_URI }}" >> $GITHUB_ENV
 
-      # 🚀 STEP 5: UPSERT PIPELINE
+      # 🚀 ALWAYS UPSERT PIPELINE
       - name: Upsert SageMaker pipeline
         run: |
-          echo "Creating/Updating SageMaker Pipeline..."
           python scripts/run_pipeline.py \
             --region "$AWS_REGION" \
             --pipeline-name "$PIPELINE_NAME"
 
-      # ▶️ STEP 6: START PIPELINE (OPTIONAL)
+      # 🚀 ALWAYS START PIPELINE (FIXED)
       - name: Start SageMaker pipeline
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.start_pipeline == true }}
         run: |
-          echo "Starting SageMaker Pipeline Execution..."
+          echo "Starting pipeline..."
           python scripts/run_pipeline.py \
             --region "$AWS_REGION" \
             --pipeline-name "$PIPELINE_NAME" \
